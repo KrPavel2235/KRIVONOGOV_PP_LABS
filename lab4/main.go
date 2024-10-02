@@ -14,7 +14,6 @@ func main() {
 		"Хумас Ржачков": 24,
 	}
 
-	fmt.Println(peopleMap)
 	addPerson(&peopleMap, "Павлик Кривой", 20)
 
 	fmt.Println(peopleMap, peopleMap["Джексон Панин"])
