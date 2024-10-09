@@ -5,12 +5,12 @@ import (
 )
 
 type Person struct {
-	firstName  string
+	Name  string
 	age        int
 }
 
 func (p Person) getPersonInfo() {
-	fmt.Println("Имя: ", p.firstName)
+	fmt.Println("Имя: ", p.Name)
 	fmt.Println("Возраст: ", p.age)
 }
 
