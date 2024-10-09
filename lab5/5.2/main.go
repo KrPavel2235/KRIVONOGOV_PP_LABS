@@ -20,7 +20,7 @@ func (p *Person) birthday() {
 
 func main() {
 	firstPerson := Person{
-		"Дубровин",
+		"Гренка",
 		20,
 	}
 	firstPerson.getPersonInfo()
