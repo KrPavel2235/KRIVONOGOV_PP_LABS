@@ -32,27 +32,28 @@ func sumSeries(n int) int {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	go func() { // прикол для того, чтобы функция просто обрабатывала события, без упоминания в main
-		fmt.Println("Calculating factorial...")
-		time.Sleep(2 * time.Second) // Simulate delay
-		result := factorial(5)
-		fmt.Println("Factorial of 5:", result)
+	go func() { //функция просто обрабатывает события, без упоминания в main
+		fmt.Println("Факториал...")
+		time.Sleep(2 * time.Second)
+		var n = rand.Intn(20)
+		result := factorial(n)
+		fmt.Print("Факториал ", n, " :", result, "\n")
 	}()
 
 	go func() {
-		fmt.Println("Generating random numbers...")
-		time.Sleep(1 * time.Second) // Simulate delay
+		fmt.Println("Создаём случайные числа...")
+		time.Sleep(1 * time.Second)
 		numbers := generateRandomNumbers(5)
-		fmt.Println("Random numbers:", numbers)
+		fmt.Println("Числа:", numbers)
 	}()
 
 	go func() {
-		fmt.Println("Calculating sum of series...")
-		time.Sleep(3 * time.Second) // Simulate delay
+		fmt.Println("Сумма серии чисел...")
+		time.Sleep(3 * time.Second)
 		sum := sumSeries(10)
-		fmt.Println("Sum of series:", sum)
+		fmt.Println("сумма:", sum)
 	}()
 
 	time.Sleep(5 * time.Second)
-	fmt.Println("Main goroutine exiting...")
+	fmt.Println("Горутины закрываются...")
 }

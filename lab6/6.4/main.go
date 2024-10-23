@@ -2,60 +2,52 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
-	"time"
 )
 
-var counter int // Общая переменная-счетчик
+var (
+	counterWithMutex    int
+	counterWithoutMutex int
+	mutex               sync.Mutex
+)
+
+func incrementWithMutex(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := 0; i < 1000; i++ {
+		mutex.Lock()       // Блокируем мьютекс
+		counterWithMutex++ // Увеличиваем счетчик
+		mutex.Unlock()     // Разблокируем мьютекс
+	}
+}
+
+func incrementWithoutMutex(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := 0; i < 1000; i++ {
+		counterWithoutMutex++ // Увеличиваем счетчик без блокировки
+	}
+}
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU()) // Задействуем все ядра процессора
+	var wg sync.WaitGroup
 
-	var mutex sync.Mutex // Создаем мьютекс
+	// Запускаем горутины с мьютексами
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go incrementWithMutex(&wg)
+	}
 
-	// Горутина, увеличивающая счетчик с использованием мьютекса
-	go func() {
-		for i := 0; i < 1000000; i++ {
-			mutex.Lock() // Блокируем мьютекс перед изменением счетчика
-			counter++
-			mutex.Unlock() // Разблокируем мьютекс после изменения счетчика
-		}
-	}()
+	wg.Wait() // Ждем завершения всех горутин
+	fmt.Printf("Итоговое значение счетчика с мьютексами: %d\n", counterWithMutex)
 
-	// Горутина, увеличивающая счетчик без использования мьютекса
-	go func() {
-		for i := 0; i < 1000000; i++ {
-			counter++ // Изменяем счетчик без блокировки мьютекса
-		}
-	}()
+	// Сбрасываем счетчик без мьютексов
+	counterWithoutMutex = 0
 
-	// Ждем завершения горутин
-	time.Sleep(time.Second)
+	// Запускаем горутины без мьютексов
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go incrementWithoutMutex(&wg)
+	}
 
-	// Выводим результаты
-	fmt.Println("Счетчик с мьютексом:", counter)
-
-	// Сбрасываем счетчик
-	counter = 0
-
-	// Горутина, увеличивающая счетчик без использования мьютекса
-	go func() {
-		for i := 0; i < 1000000; i++ {
-			counter++ // Изменяем счетчик без блокировки мьютекса
-		}
-	}()
-
-	// Горутина, увеличивающая счетчик без использования мьютекса
-	go func() {
-		for i := 0; i < 1000000; i++ {
-			counter++ // Изменяем счетчик без блокировки мьютекса
-		}
-	}()
-
-	// Ждем завершения горутин
-	time.Sleep(time.Second)
-
-	// Выводим результаты
-	fmt.Println("Счетчик без мьютекса:", counter)
+	wg.Wait() // Ждем завершения всех горутин
+	fmt.Printf("Итоговое значение счетчика без мьютексов: %d\n", counterWithoutMutex)
 }

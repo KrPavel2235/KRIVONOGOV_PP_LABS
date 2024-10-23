@@ -6,9 +6,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-// Функция для реверсирования строки
 func reverseString(str string) string {
 	runes := []rune(str)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -18,13 +18,12 @@ func reverseString(str string) string {
 }
 
 // Функция-воркер для обработки задач
-func worker(id int, tasks <-chan string, results chan<- string) {
+func worker(id int, tasks <-chan string, results chan<- string, wg *sync.WaitGroup) {
+	defer wg.Done() // Уменьшаем счетчик WaitGroup при завершении работы воркера
 	for task := range tasks {
-		// Обработка задачи (реверсирование строки)
 		reversed := reverseString(task)
 		fmt.Printf("Рабочий %d: Обработана строка '%s' -> '%s'\n", id, task, reversed)
 
-		// Отправка результата в канал results
 		results <- reversed
 	}
 }
@@ -40,13 +39,15 @@ func main() {
 	tasks := make(chan string)
 	results := make(chan string)
 
-	// Создание пула воркеров
+	var wg sync.WaitGroup
+
 	for i := 0; i < numWorkers; i++ {
-		go worker(i+1, tasks, results) // Запуск каждого воркера в отдельной горутине
+		wg.Add(1)
+		go worker(i+1, tasks, results, &wg) // Запуск каждого воркера в отдельной горутине
 	}
 
 	// Чтение строк из файла
-	file, err := os.Open("project\\lab6\\lab6.6\\text.txt") // Замените "input.txt" на имя вашего файла
+	file, err := os.Open("C:/Users/Pavel/Downloads/KRIVONOGOV_PP_LABS-main (1)/KRIVONOGOV_PP_LABS-main/lab6/6.6/text.txt") // Замените на ваш путь
 	if err != nil {
 		fmt.Println("Ошибка открытия файла:", err)
 		return
@@ -61,13 +62,14 @@ func main() {
 	// Закрытие канала tasks для сигнализации окончания отправки задач
 	close(tasks)
 
-	// Сбор результатов
-	for i := 0; i < numWorkers; i++ {
-		fmt.Println("Результат", <-results) // Считываем результат из канала results
-	}
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-	// Закрытие канала results
-	close(results)
+	for result := range results {
+		fmt.Println("Результат:", result)
+	}
 
 	fmt.Println("Все рабочие завершили обработку.")
 }

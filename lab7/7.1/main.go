@@ -38,7 +38,7 @@ func handleConnection(conn net.Conn) {
 
 func main() {
 	// Задание адреса и порта для прослушивания
-	address := "localhost:8080" // Измените адрес и порт по необходимости
+	address := "localhost:8080"
 
 	// Создание слушателя
 	listener, err := net.Listen("tcp", address)
@@ -46,7 +46,7 @@ func main() {
 		fmt.Println("Ошибка создания слушателя:", err)
 		return
 	}
-	defer listener.Close() // Закрытие слушателя после завершения работы
+	defer listener.Close()
 
 	fmt.Println("Сервер запущен на", address)
 

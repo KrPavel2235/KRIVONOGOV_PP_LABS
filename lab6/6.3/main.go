@@ -3,48 +3,40 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano()) // Инициализация генератора случайных чисел
-
-	// Создание каналов для передачи случайных чисел и сообщений о четности
+	var wg sync.WaitGroup
 	numberChannel := make(chan int)
-	parityChannel := make(chan string)
 
-	// Горутина для генерации случайных чисел
+	wg.Add(2)
+
+	// Горутина для генерации случайного числа
 	go func() {
-		for i := 0; i <= 10; i++ {
-			randomNumber := rand.Intn(100) // Генерируем случайное число от 0 до 99
-			numberChannel <- randomNumber  // Отправляем число в numberChannel
-			time.Sleep(time.Second)        // Пауза перед генерацией следующего числа
+		defer wg.Done()
+		for {
+			num := rand.Intn(100) // Генерируем случайное число от 0 до 99
+			numberChannel <- num
+			time.Sleep(1 * time.Second) // Задержка для генерации нового числа
 		}
-		close(numberChannel) // Закрываем канал после отправки всех чисел
 	}()
 
-	// Горутина для определения четности/нечетности чисел
+	// Горутина для проверки четности числа
 	go func() {
-		for number := range numberChannel { // Цикл считывания чисел из numberChannel
-			if number%2 == 0 {
-				parityChannel <- "Четное"
-
+		defer wg.Done()
+		for num := range numberChannel {
+			if num%2 == 0 {
+				fmt.Printf("Число %d четное\n", num)
 			} else {
-				parityChannel <- "Нечетное"
-
+				fmt.Printf("Число %d нечетное\n", num)
 			}
 		}
-		close(parityChannel) // Закрываем канал после обработки всех чисел
 	}()
 
-	// Главный поток: обработка данных из каналов
-	for i := 0; i <= 10; i++ {
-		select {
-		case number := <-numberChannel: // Считывание числа из numberChannel
-			fmt.Println("Сгенерировано число:", number)
-		case parity := <-parityChannel: // Считывание сообщения о четности из parityChannel
-			fmt.Println("Четность:", parity)
-
-		}
-	}
+	// Запускаем горутины на 10 секунд, затем завершаем
+	time.Sleep(10 * time.Second)
+	close(numberChannel) // Закрываем канал, чтобы завершить вторую горутину
+	wg.Wait()            // Ждем завершения всех горутин
 }
