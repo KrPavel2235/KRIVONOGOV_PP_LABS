@@ -5,28 +5,14 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-var jwtKey = []byte("your_secret_key")
-
-type Credentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type Claims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
-}
 
 // User модель данных
 type User struct {
@@ -40,7 +26,6 @@ type User struct {
 type Application struct {
 	DB       *gorm.DB
 	Validate *validator.Validate
-	JWTKey   []byte
 }
 
 // Инициализация базы данных
@@ -155,82 +140,12 @@ func (app *Application) routes() *chi.Mux {
 	r.Post("/users", app.createUser)
 	r.Put("/users/{id}", app.updateUser)
 	r.Delete("/users/{id}", app.deleteUser)
-	r.HandleFunc("/users/login", app.login)
-
 	return r
 }
 
-// Обработка защищенного маршрута
-func (app *Application) handleUsers(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This is a protected route. Only authorized users can see this message."))
-}
-
-// Метод для логина и генерации токена
-func (app *Application) login(w http.ResponseWriter, r *http.Request) {
-	var creds Credentials
-	err := json.NewDecoder(r.Body).Decode(&creds)
-	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
-
-	// Пример проверки пользователя
-	if creds.Username != "testuser" || creds.Password != "testpassword" {
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
-		return
-	}
-
-	expirationTime := time.Now().Add(5 * time.Minute)
-	claims := &Claims{
-		Username: creds.Username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		http.Error(w, "Could not generate token", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
-}
-
-// Middleware для аутентификации
-func (app *Application) authenticate(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" || len(tokenString) < 7 {
-			http.Error(w, "Missing or invalid token", http.StatusUnauthorized)
-			return
-		}
-
-		// Удаление "Bearer " из строки токена
-		tokenString = tokenString[7:]
-
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Вызов следующего обработчика
-		next(w, r)
-	}
-}
-
-// Основная функция запуска сервера
 func main() {
 	app := Application{
 		Validate: validator.New(),
-		JWTKey:   []byte("secret"),
 	}
 	app.initDB()
 	logrus.Info("Сервер запущен на порту 8080")
